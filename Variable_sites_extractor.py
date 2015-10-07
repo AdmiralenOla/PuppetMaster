@@ -80,6 +80,9 @@ def main(argv):
 				# Then the second most common nucleotide needs to have a value of >= 2
 				if sorted(nucleotide_counts.values())[-2] >= 2:
 					include = True
+				if len(nucleotide_counts.keys()) == 4:
+					# Sites where all bases are represented are not informative
+					include = False
 			
 			if include:
 				for isolate in newdic:
