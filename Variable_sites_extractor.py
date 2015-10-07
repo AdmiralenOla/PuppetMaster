@@ -8,7 +8,7 @@
 
 # I overrides V
 
-import sys, argparse, random, progressbar
+import sys, argparse, progressbar
 from Bio import SeqIO
 from time import sleep
 
@@ -42,13 +42,13 @@ def main(argv):
 	# FILTER ALIGNMENT:
 	with open(args.alignment, "rU") as f:
 		handle = SeqIO.parse(f, "fasta")
-		dic = {l.id : l.seq._data for l in handle}
+		backup = {l.id : l.seq._data for l in handle}
+		dic = backup.values()
+		ids = backup.keys()
 		
-		newdic = {k : "" for k in dic.keys()}
-		includesites = []
-		
-		reference = dic.popitem()
-		length = len( reference[1] )
+		newdic = {k : "" for k in ids}
+
+		length = len(dic[0])
 		
 		print "Finished reading MSA file. Iterating over all positions and all isolates..."
 		
@@ -57,55 +57,34 @@ def main(argv):
 		bar.start()
 
 		for nuc in range(length): # For each nucleotide in the alignment
-
+			include = False
+			col = "".join([x[nuc] for x in dic])
 			
-
-									
+			if "N" in col and args.N_containing:
+				include = False
+				continue # Go to next nucleotide
+			if "-" in col and args.ungapped:
+				include = False
+				continue # Go to next nucleotide
+				
 			nucleotide_counts = {}
-			pastnucleotide = reference[1][nuc]
-			nucleotide_counts[pastnucleotide] = 1
+			for char in ["A","C","G","T"]:
+				nucleotide_counts[char] = col.count(char)
+				
+			if args.variable:
+				# Then it is enough to know that more than one key exists
+				if len(nucleotide_counts.keys()) > 1:
+					include = True
 			
-			activate = False
+			elif args.informative:
+				# Then the second most common nucleotide needs to have a value of >= 2
+				if sorted(nucleotide_counts.values())[-2] >= 2:
+					include = True
 			
-			for r in dic: # For each isolate
-				thisnucleotide = dic[r][nuc]
-				
-				if thisnucleotide in nucleotide_counts:
-					nucleotide_counts[thisnucleotide] += 1
-				else:
-					nucleotide_counts[thisnucleotide] = 1
-				
-				if (pastnucleotide == "N" or thisnucleotide == "N") and args.N_containing:
-					activate = False
-					break
-				if (pastnucleotide == "-" or thisnucleotide == "-") and args.ungapped:
-					activate = False
-					break
+			if include:
+				for isolate in newdic:
+					newdic[isolate] += backup[isolate][nuc]
 
-				# For variable it is enough that even one nucleotide is not equal
-				# Oops! Cannot break before it checks that column is missing N or -
-				if args.variable:
-					if thisnucleotide != pastnucleotide: # Add to dic
-						activate = True
-						#break
-
-				elif args.informative:
-					if len(nucleotide_counts.keys()) >= 2:
-						if nucleotide_counts[thisnucleotide] >= 2 and nucleotide_counts[pastnucleotide] >= 2:
-							activate = True
-							#break
-				
-				if thisnucleotide != pastnucleotide:
-					#information += 1
-					pastnucleotide = thisnucleotide
-					
-			if activate:
-				for y in newdic:
-					try:
-						newdic[y] += dic[y][nuc]
-					except KeyError: # Happens on the reference
-						newdic[y] += reference[1][nuc]					
-					
 			bar.update(nuc+1)
 		bar.finish()			
 
