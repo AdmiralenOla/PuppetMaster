@@ -69,7 +69,9 @@ def main(argv):
 				
 			nucleotide_counts = {}
 			for char in ["A","C","G","T"]:
-				nucleotide_counts[char] = col.count(char)
+				charcount = col.count(char)
+				if charcount > 0:
+					nucleotide_counts[char] = col.count(char)
 				
 			if args.variable:
 				# Then it is enough to know that more than one key exists
