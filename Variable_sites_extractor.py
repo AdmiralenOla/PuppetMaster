@@ -79,6 +79,9 @@ def main(argv):
 					include = True
 			
 			elif args.informative:
+				# First we need to know that at least two different bases exists at this site
+				if not len(nucleotide_counts.keys()) > 1:
+					continue # Go to next nucleotide
 				# Then the second most common nucleotide needs to have a value of >= 2
 				if sorted(nucleotide_counts.values())[-2] >= 2:
 					include = True
