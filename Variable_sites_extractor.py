@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 # Script for extracting from a multi-fasta aligment:
+# [A]ll sites (ie. do not only return variable or informative. Can still filter out N or gap-containing sites)
 # [V]ariable sites  (Sites where 1 >= sites have SNPs)
 # [I]nformative sites (Sites where 2 >= sites have SNPs)
 # [U]ngapped alignment (remove all gap-containing sites)
 # [N]-containing sites (remove sites with ambigous characters)
+# [C]oordinates (return coordinates of sites rather than characters themselves)
 
 # I overrides V
 
@@ -20,24 +22,29 @@ def main(argv):
 	parser=argparse.ArgumentParser(description="Strip sites from multi-FASTA alignments")
 	parser.add_argument("alignment")
 	variable_or_informative = parser.add_mutually_exclusive_group()
-	variable_or_informative.add_argument("-v", "--variable", help="Return variable sites. (Sites where 1 >= isolates have SNPs)", action="store_true")
-	variable_or_informative.add_argument("-i", "--informative", help="Return informative sites (Sites where 2 >= isolates have SNPs) Overrides -v", action="store_true", default=True)
+	variable_or_informative.add_argument("-a", "--all", help="Return all sites. (Can still filter out N- or gap-containing sites).", action="store_true", default=True)
+	variable_or_informative.add_argument("-v", "--variable", help="Return variable sites. (Sites where 1 >= isolates have SNPs)", action="store_true", default=False)
+	variable_or_informative.add_argument("-i", "--informative", help="Return informative sites (Sites where 2 >= isolates have SNPs) Overrides -v", action="store_true", default=False)
 	parser.add_argument("-u", "--ungapped", help="Do not return gapped sites", action="store_true", default=False)
 	parser.add_argument("-N", "--N_containing", help="Do not return N-containing sites", action="store_true", default=False)
 	parser.add_argument("-o", "--output_file", help="Path to output file (Default: ./output.fasta)",default="outputfile.fasta")
+	parser.add_argument("-c", "--coordinates", help="Return coordinates of sites rather than characters themselves", action="store_true", default=False)
 	
 	args = parser.parse_args()
 	
+	# Needed?
 	if args.variable == True:
 		args.informative = False
 		
 	print "You have supplied the following arguments:"
 	print "MSA input file:\t\t" + args.alignment
 	print "Filtered MSA output file:\t\t" + args.output_file
+	print "Return all sites:\t\t\t" + str(args.all)
 	print "Return variable sites:\t\t\t" + str(args.variable)
 	print "Return informative sites:\t\t" + str(args.informative)
 	print "Filter out N-containing columns:\t" + str(args.N_containing)
 	print "Filter out gapped columns:\t\t" + str(args.ungapped)
+	print "Return coordinates only:\t\t" + str(args.coordinates)
 					
 	# FILTER ALIGNMENT:
 	with open(args.alignment, "rU") as f:
@@ -57,8 +64,14 @@ def main(argv):
 		bar.start()
 
 		for nuc in range(length): # For each nucleotide in the alignment
-			include = False
+			if args.all:
+				include = True
+			else:
+				include = False
 			col = "".join([x[nuc] for x in dic])
+			
+			# Make upper-case:
+			col = col.replace("a","A").replace("c","C").replace("g","G").replace("t","T")
 			
 			if "N" in col and args.N_containing:
 				include = False
@@ -71,7 +84,8 @@ def main(argv):
 			for char in ["A","C","G","T"]:
 				charcount = col.count(char)
 				if charcount > 0:
-					nucleotide_counts[char] = col.count(char)
+					#nucleotide_counts[char] = col.count(char)
+					nucleotide_counts[char] = charcount
 				
 			if args.variable:
 				# Then it is enough to know that more than one key exists
@@ -91,7 +105,10 @@ def main(argv):
 			
 			if include:
 				for isolate in newdic:
-					newdic[isolate] += backup[isolate][nuc]
+					if not args.coordinates:
+						newdic[isolate] += backup[isolate][nuc]
+					else:
+						newdic[isolate] += str(nuc) + ","
 
 			bar.update(nuc+1)
 		bar.finish()			
