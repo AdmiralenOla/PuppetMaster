@@ -21,8 +21,8 @@ def Usage():
 def main(argv):
 	parser=argparse.ArgumentParser(description="Strip sites from multi-FASTA alignments")
 	parser.add_argument("alignment")
-	variable_or_informative = parser.add_mutually_exclusive_group()
-	variable_or_informative.add_argument("-a", "--all", help="Return all sites. (Can still filter out N- or gap-containing sites).", action="store_true", default=True)
+	variable_or_informative = parser.add_mutually_exclusive_group(required=True)
+	variable_or_informative.add_argument("-a", "--all", help="Return all sites. (Can still filter out N- or gap-containing sites).", action="store_true", default=False)
 	variable_or_informative.add_argument("-v", "--variable", help="Return variable sites. (Sites where 1 >= isolates have SNPs)", action="store_true", default=False)
 	variable_or_informative.add_argument("-i", "--informative", help="Return informative sites (Sites where 2 >= isolates have SNPs) Overrides -v", action="store_true", default=False)
 	parser.add_argument("-u", "--ungapped", help="Do not return gapped sites", action="store_true", default=False)
@@ -53,7 +53,10 @@ def main(argv):
 		dic = backup.values()
 		ids = backup.keys()
 		
-		newdic = {k : "" for k in ids}
+		if not args.coordinates:
+			newdic = {k : "" for k in ids}
+		else:
+			newdic = ""
 
 		length = len(dic[0])
 		
@@ -104,14 +107,18 @@ def main(argv):
 					include = False
 			
 			if include:
-				for isolate in newdic:
-					if not args.coordinates:
+				if not args.coordinates:
+					for isolate in newdic:
 						newdic[isolate] += backup[isolate][nuc]
-					else:
-						newdic[isolate] += str(nuc) + ","
+				else:
+					newdic += str(nuc) + ","
 
 			bar.update(nuc+1)
-		bar.finish()			
+		bar.finish()
+		
+		# Convert to dic if coordinate mode
+		if args.coordinates:
+			newdic = {"C": newdic}			
 
 		with open(args.output_file, "w") as g:
 			for key in sorted(newdic):
