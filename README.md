@@ -1,9 +1,7 @@
 # PuppetMaster
 Tools for manipulating sequencing data, multiple sequence alignments and phylogenetic trees
 
-=========================
-VARIABLE SITES EXTRACTION
-=========================
+# VARIABLE SITES EXTRACTION
 
 The aim of many microbial typing pipelines is to compare isolates at the SNP level. After multiple sequence alignment,
 phylogenetic inferences can be made by comparing SNPs across isolates. However, since SNPs are usually called with respect
